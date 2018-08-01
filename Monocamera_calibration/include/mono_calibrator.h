@@ -20,7 +20,7 @@ this program. If not, see <http://www.gnu.org/licenses/>.
 #include <Matrice\core\matrix.h>
 
 namespace dgelom {
-#define INLINE MATRICE_HOST_INL
+#define INLINE MATRICE_HOST_FINL
 enum {analytic = 0x0001, optimized = 0x0000};
 enum { D2U = 0x0003, U2D = 0x0002 };
 enum pattern_type {squared = 0, circular = 1, };
