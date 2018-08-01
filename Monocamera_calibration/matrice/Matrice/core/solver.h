@@ -29,7 +29,7 @@ protected:
 	auto _Impl(_Args... args) { return static_cast<derived_t*>(this)->m_op(args...); }
 };
 
-struct LinearOp final
+struct LinearOp MATRICE_NONHERITABLE
 {
 	struct info_t { solver_type alg = AUTO; int status = 1; int sign = 1; };
 	template<typename _T> class OpBase 
@@ -55,13 +55,13 @@ struct LinearOp final
 		enum { N = _Mty::CompileTimeCols };
 		enum { option = solver_type::AUTO };
 
-		constexpr Auto(const _Mty& arg) : A(arg) {
+		MATRICE_HOST_FINL constexpr Auto(const _Mty& arg) : A(arg) {
 			OpBase<value_t>::_Future = std::async(std::launch::async, [&]()->info_t { 
 				return OpBase<value_t>::_Impl(OpBase<value_t>::_Aview = A); });
 		}
 
-		template<typename _Ret = Matrix_<value_t, N, min(N, 1)>> constexpr _Ret& operator() (_Ret& X)
-		{
+		template<typename _Ret = Matrix_<value_t, N, min(N, 1)>> 
+		MATRICE_HOST_FINL constexpr _Ret& operator() (_Ret& X) {
 			OpBase<value_t>::_Launch();
 			OpBase<value_t>::_Impl(OpBase<value_t>::_Aview, OpBase<value_t>::_Bview = X);
 			return (X);
@@ -76,9 +76,9 @@ struct LinearOp final
 		enum { N = _Mty::CompileTimeCols };
 		enum { option = solver_type::GLS };
 
-		constexpr Gls(const _Mty& arg) : A(arg) { OpBase<value_t>::_Info.alg = option; };
+		MATRICE_HOST_FINL constexpr Gls(const _Mty& arg) : A(arg) { OpBase<value_t>::_Info.alg = option; };
 
-		template<typename _Rhs> constexpr _Rhs& operator() (_Rhs& b) const { 
+		template<typename _Rhs> MATRICE_HOST_FINL constexpr _Rhs& operator() (_Rhs& b) const {
 			return OpBase<value_t>::_Impl(OpBase<value_t>::_Aview = A, OpBase<value_t>::_Bview = b);
 		};
 
@@ -92,20 +92,21 @@ struct LinearOp final
 		enum { N = _Mtx::CompileTimeCols };
 		enum { option = solver_type::SVD };
 
-		constexpr Svd(const _Mtx& args) : U(args) {
+		MATRICE_HOST_FINL constexpr Svd(const _Mtx& args) : U(args) {
 			S.create(U.cols(), 1), V.create(U.cols(), U.cols());
 			OpBase<value_t>::_Future = std::async(std::launch::async, [&] {
 				using Op = OpBase<value_t>;
 				return OpBase<value_t>::_Impl(Op::_Aview = U, Op::_Bview = S, Op::_Cview = V);
 			});
 		};
-		constexpr auto operator() (std::_Ph<0> _ph = {}) {
+		MATRICE_HOST_FINL constexpr auto operator() (std::_Ph<0> _ph = {}) {
 			OpBase<value_t>::_Launch();
 			Matrix_<value_t, _Mtx::CompileTimeCols, min(_Mtx::CompileTimeCols, 1)> X(U.cols(), 1);
 			transform([&](value_t val)->value_t{return (val);}, V.begin(), V.end(), V.cols(), X.begin());
 			return (X);
 		}
-		template<typename _Ret = Matrix_<value_t, N, min(N, 1)>> constexpr _Ret& operator() (_Ret& X){
+		template<typename _Ret = Matrix_<value_t, N, min(N, 1)>> 
+		MATRICE_HOST_FINL constexpr _Ret& operator() (_Ret& X) {
 			OpBase<value_t>::_Launch();
 
 			Matrix_<value_t, _Mtx::CompileTimeCols, min(_Mtx::CompileTimeCols, 1)> Z(X.rows(), 1); //inverse of singular values
@@ -128,14 +129,14 @@ struct LinearOp final
 		enum { N = _Mty::CompileTimeCols };
 		enum { option = solver_type::SVD };
 
-		constexpr Evv(const _Mty& args) : A(args) {}
+		MATRICE_HOST_FINL constexpr Evv(const _Mty& args) : A(args) {}
 
 	private:
 		const _Mty& A;
 	};
 };
 
-struct Solver final
+struct Solver MATRICE_NONHERITABLE
 {
 	template<typename _Op = LinearOp::Auto<Matrix<default_type>>> class Linear_ : public SolverBase<Linear_<_Op>>
 	{
@@ -144,12 +145,14 @@ struct Solver final
 		using typename Base::Options;
 	public:
 		_Op m_op;
-		template<typename... _Args> constexpr Linear_(const _Args&... args) : m_op(args...) {};
-		template<typename... _Args> constexpr auto solve(const _Args&... args) { return Base::_Impl(args...); }
+		template<typename... _Args> MATRICE_HOST_FINL
+		constexpr Linear_(const _Args&... args) : m_op(args...) {};
+		template<typename... _Args> MATRICE_HOST_FINL
+		constexpr auto solve(const _Args&... args) { return Base::_Impl(args...); }
 	};
 };
 
-template<typename _Ty> class Solver_ final
+template<typename _Ty> class Solver_ MATRICE_NONHERITABLE
 {
 public:
 	const int dynamic = 0;
