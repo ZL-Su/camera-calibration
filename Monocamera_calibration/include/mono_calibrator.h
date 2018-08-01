@@ -55,20 +55,15 @@ public:
 	using ptarray_t = types::Matrix<float>;
 	using matrix3x3 = types::Matrix_<value_t, 3, 3>;
 	using pattern_t = pattern<_Patt>;
+
+	// \constructor for image points fed by user
 	INLINE mono_calibrator(const pattern_t& _Pattern)
 		:m_pattern(_Pattern) {
 		_Get_planar_points();
 	}
+	// \constructor for image path fed by user
 	INLINE mono_calibrator(const img_info_t& _Fnames, const pattern_t& _Pattern) 
 		:m_fnames(_Fnames), m_pattern(_Pattern) {
-		// \Begin random select 10 images for debugging
-		{
-			auto _Uniform = std::bind(std::uniform_int_distribution<size_t>(0, m_fnames.count() - 1), std::default_random_engine());
-			std::vector<std::string> _Names(10);
-			for_each(_Names, [&](auto& _Name) {_Name = m_fnames.names()[_Uniform()]; });
-			m_fnames.names().swap(_Names);
-		}
-		// \End
 		_Get_planar_points();
 		_Get_image_points();
 	}
