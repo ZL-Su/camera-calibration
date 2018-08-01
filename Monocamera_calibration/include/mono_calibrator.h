@@ -81,6 +81,12 @@ public:
 	INLINE auto& image_points(size_t i) { return (m_ipoints[i]); }
 	INLINE const auto& image_points(size_t i) const { return (m_ipoints[i]); }
 
+	// \image width and height
+	INLINE auto& image_width() { return m_iw; }
+	INLINE auto& image_height() { return m_ih; }
+	INLINE const auto& image_width() const { return m_iw; }
+	INLINE const auto& image_height() const { return m_ih; }
+
 	INLINE auto& scale() { return m_scale; };
 	INLINE const auto& scale() const { return m_scale; };
 	INLINE auto& error() { return m_error; };
