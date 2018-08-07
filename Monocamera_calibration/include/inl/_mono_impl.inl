@@ -40,13 +40,17 @@ INLINE auto& dgelom::mono_calibrator<T, _Patt, _Order>::_Get_image_points(){
 		const auto _Nimgs = m_fnames.count();
 		const int  _N = m_pattern.count();
 		m_ipoints.reserve(_Nimgs);
-
+		m_indices.clear();
 #pragma omp parallel 
 {
 #pragma omp for
 		for (index_t i = 0; i < _Nimgs; ++i) {
-			bool _Found = 0; std::vector<Point2f> _Points;
+		        m_indices.push_back(static_cast<size_t>(i));
+			
+			bool _Found = false; std::vector<Point2f> _Points;
 			auto _Src = imread(m_fnames(i), 0);
+			m_iw = _Src.cols, m_ih = _Src.rows; 
+			
 			if constexpr (m_pattern.type == squared)
 				_Found = findChessboardCorners(_Src, _Size, _Points,
 					CALIB_CB_ADAPTIVE_THRESH +
@@ -57,10 +61,7 @@ INLINE auto& dgelom::mono_calibrator<T, _Patt, _Order>::_Get_image_points(){
 			if (_Found) {
 				cornerSubPix(_Src, _Points, Size(11, 11), Size(-1, -1),
 					TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
-			}
-			m_iw = _Src.cols, m_ih = _Src.rows;
-
-			if (_Found) {
+					
 				ptarray_t _Mpoints(4, _N, ptarray_t::inf);
 				using iterator = typename ptarray_t::iterator;
 				iterator _Beginx = _Mpoints[0], _Beginy = _Mpoints[1];
