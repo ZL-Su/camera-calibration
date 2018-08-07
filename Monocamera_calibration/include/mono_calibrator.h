@@ -75,6 +75,7 @@ public:
 	// \get i-th image points
 	INLINE auto& image_points(size_t i) { return (m_ipoints[i]); }
 	INLINE const auto& image_points(size_t i) const { return (m_ipoints[i]); }
+	INLINE const auto& image_indices() const { return (m_indices);}
 
 	// \image width and height
 	INLINE auto& image_width() { return m_iw; }
@@ -117,6 +118,7 @@ private:
 
 	ptarray_t m_points;
 	std::vector<ptarray_t> m_ipoints;
+	std::vector<size_t> m_indices;
 	matrix3x3 m_normal = { matrix3x3::inf };
 };
 }
