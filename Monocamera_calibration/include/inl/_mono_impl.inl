@@ -45,9 +45,8 @@ INLINE auto& dgelom::mono_calibrator<T, _Patt, _Order>::_Get_image_points(){
 {
 #pragma omp for
 		for (index_t i = 0; i < _Nimgs; ++i) {
-		        m_indices.push_back(static_cast<size_t>(i));
-			
 			bool _Found = false; std::vector<Point2f> _Points;
+			
 			auto _Src = imread(m_fnames(i), 0);
 			m_iw = _Src.cols, m_ih = _Src.rows; 
 			
@@ -70,6 +69,7 @@ INLINE auto& dgelom::mono_calibrator<T, _Patt, _Order>::_Get_image_points(){
 					_Beginx[_Pos] = _Point.x; _Beginy[_Pos++] = _Point.y;
 				});
 				m_ipoints.emplace_back(_Mpoints);
+				m_indices.push_back(static_cast<size_t>(i));
 			}
 		}
 }
