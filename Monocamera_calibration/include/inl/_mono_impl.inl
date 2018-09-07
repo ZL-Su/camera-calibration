@@ -58,7 +58,8 @@ INLINE auto& dgelom::mono_calibrator<T, _Patt, _Order>::_Get_image_points(){
 				_Found = findCirclesGrid(_Src, _Size, _Points,
 					CALIB_CB_SYMMETRIC_GRID);
 			if (_Found) {
-				cornerSubPix(_Src, _Points, Size(11, 11), Size(-1, -1),
+				if constexpr (m_pattern.type == squared)
+					cornerSubPix(_Src, _Points, Size(11, 11), Size(-1, -1),
 					TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
 					
 				ptarray_t _Mpoints(4, _N, ptarray_t::inf);
