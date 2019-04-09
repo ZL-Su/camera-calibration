@@ -1,13 +1,10 @@
 <img src="../master/ivm.svg" width="800">
-# IVM(R) Monocamera_calibration
 
-Requirements:
- 1. OpenCV 3.4.0;
- 2. Newest C++20;
- 3. Windows 10 + Intel CPU with AVX.
+# IVM(R) Monocamera_calibration
+A C++ library for mono-camera calibration.
 
 ## System Requirements
-Matrice supports Intel 64 architecture and compatible architectures.
+Monocamera calibration supports Intel 64 architecture and compatible architectures.
 The library is optimized for the systems based on
 * Intel(R) Core(TM) processor - 5th, 6th, 7th, and 8th generation
 * Intel(R) Xeon(R) processor E5 v3 family (formerly Haswell)
@@ -15,6 +12,7 @@ The library is optimized for the systems based on
 and compatible processors.
 
 The software dependencies are:
+* OpenCV 3.4.0
 * C++ compiler with C++11 standart support (at least)
 * Optinal dependencies:
   * Intel OpenMP
