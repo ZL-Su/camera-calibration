@@ -31,10 +31,10 @@ along with this program.If not, see <http://www.gnu.org/licenses/>.
 
 MATRICE_ARCH_BEGIN namespace details{ namespace impl {
 #ifndef MATRICE_HOST_ICEA
-#define MATRICE_HOST_ICEA MATRICE_HOST_FINL constexpr auto
+#define MATRICE_HOST_ICEA MATRICE_HOST_FINL /*constexpr*/ auto
 #endif
 #ifndef HOST_STATIC_INL_CXPR_T
-#define HOST_STATIC_INL_CXPR_T static MATRICE_HOST_FINL constexpr auto 
+#define HOST_STATIC_INL_CXPR_T static MATRICE_HOST_FINL /*constexpr*/ auto 
 #endif
 #pragma region <!-- packet level operators (PLO) : data management & horizontal operation -->
 template<typename T, int _Elems> struct packet_op_base 

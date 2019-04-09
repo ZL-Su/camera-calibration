@@ -58,7 +58,7 @@ public:
 	};
 	IO() {};
 
-	static MATRICE_HOST_FINL auto workspace() { return fs::current_path(); }
+	static MATRICE_HOST_FINL fs::path workspace() { return fs::current_path(); }
 	template<is_skip_folder _Fopt = is_skip_folder::Y>
 	static MATRICE_HOST_INL auto filenames(const std::string& dir)
 	{

@@ -330,8 +330,14 @@ public:
 	MATRICE_GLOBAL_FINL value_t trace() const { return (reduce(begin(), end(), cols() + 1)); }
 	template<class _Rhs> MATRICE_GLOBAL_FINL value_t dot(const _Rhs& _rhs) const { return (this->operator*(_rhs)).sum(); }
 	MATRICE_GLOBAL_FINL value_t norm_2() const { auto ans = dot(*this); return (ans > eps ? std::sqrt(ans) : inf); }
-	template<typename _Rhs, typename _Ret = _Rhs> MATRICE_HOST_INL _Ret& solve(_Rhs& b) { typename Solver_<value_t>::Linear<_M, _N, AUTO> solver(*static_cast<_Derived*>(this)); return solver.solve(b); }
-	MATRICE_HOST_INL auto solve() { typename Solver_<value_t>::Linear<_M, _N, SVD> solver; return solver(*static_cast<_Derived*>(this)); }
+	template<typename _Rhs, typename _Ret = _Rhs> MATRICE_HOST_INL _Ret& solve(_Rhs& b) { 
+		typename Solver_<value_t>::template Linear<_M, _N, AUTO> solver(*static_cast<_Derived*>(this)); 
+		return solver.solve(b); 
+	}
+	MATRICE_HOST_INL auto solve() { 
+		typename Solver_<value_t>::template Linear<_M, _N, SVD> solver;
+		return solver(*static_cast<_Derived*>(this)); 
+	}
 
 	///<brief> properties </brief>
 	__declspec(property(get = _Prop_format_getter)) format_t format;

@@ -102,6 +102,8 @@ template<typename T, int _Elems, typename Packet = Packet_<T, _Elems>>
 MATRICE_HOST_FINL Packet operator/ (T* _Left, const Packet_<T, _Elems>& _Right);
 #pragma endregion
 
-#include "./inl/_ixpacket.inl"
 MATRICE_ARCH_END
+
+#include "./inl/_ixpacket.inl"
+
 #endif
