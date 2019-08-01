@@ -16,79 +16,86 @@ You should have received a copy of the GNU General Public License
 along with this program.If not, see <http://www.gnu.org/licenses/>.
 **************************************************************************/
 #pragma once
-#include "../../private/_expr_type_traits.h"
+#include "../../private/_type_traits.h"
 #ifdef __AVX__
 #include "../_ixtraits.hpp"
-#include "_ixdetails.hpp"
+#include "_ixop_impls.hpp"
 #include <pmmintrin.h>
 #include <tmmintrin.h>
 #include <wmmintrin.h>
 #include <xmmintrin.h>
 
-MATRICE_ARCH_BEGIN 
-namespace details {
-#define matrice_inl_cxauto MATRICE_HOST_FINL constexpr auto
+MATRICE_ARCH_BEGIN  namespace detail {
 
-template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
-struct Op_ MATRICE_NONHERITABLE
-{
+///<brief> SIMD operator definitions for application level. </brief>
+template<
+	typename T, 
+	typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+struct Op_ MATRICE_NONHERITABLE {
 	using value_t = T;
-	template<size_t _Elems> struct _base_type
-	{
+	template<size_t _Elems = 4> struct _base_type {
 		enum {num_of_elem = _Elems};
 		using type = conditional_t<value_t, num_of_elem>;
 	};
-	template<size_t _Elems> struct plus
-	{
-		enum { num_of_elem = _Elems };
-		using type = conditional_t<value_t, num_of_elem>;
-		matrice_inl_cxauto operator() (const type& _Left, const type& _Right)
-		{
-			return impl::simd_op<value_t, num_of_elem>::sum(_Left, _Right);
+
+	/**
+	 * ... - vertical binary arithmetic operations.
+	 */
+	template<size_t _Elems> struct plus : _base_type<_Elems> {
+		using type = typename _base_type<_Elems>::type;
+		enum { size = _base_type<_Elems>::num_of_elem };
+		HOST_INL_CXPR_T operator() (const type& _Left, const type& _Right) {
+			return impl::simd_vop<value_t, size>::sum(_Left, _Right);
 		}
 	};
-	template<size_t _Elems> struct minus
-	{
-		enum { num_of_elem = _Elems };
-		using type = conditional_t<value_t, num_of_elem>;
-		matrice_inl_cxauto operator() (const type& _Left, const type& _Right)
-		{
-			return impl::simd_op<value_t, num_of_elem>::sub(_Left, _Right);
+	template<size_t _Elems> struct minus {
+		using type = typename _base_type<_Elems>::type;
+		enum { size = _base_type<_Elems>::num_of_elem };
+		HOST_INL_CXPR_T operator() (const type& _Left, const type& _Right) {
+			return impl::simd_vop<value_t, size>::sub(_Left, _Right);
 		}
 	};
-	template<size_t _Elems> struct multiplies
-	{
-		enum { num_of_elem = _Elems };
-		using type = conditional_t<value_t, num_of_elem>;
-		matrice_inl_cxauto operator() (const type& _Left, const type& _Right)
-		{
-			return impl::simd_op<value_t, num_of_elem>::mul(_Left, _Right);
+	template<size_t _Elems> struct multiplies {
+		using type = typename _base_type<_Elems>::type;
+		enum { size = _base_type<_Elems>::num_of_elem };
+		HOST_INL_CXPR_T operator() (const type& _Left, const type& _Right) {
+			return impl::simd_vop<value_t, size>::mul(_Left, _Right);
 		}
 	};
-	template<size_t _Elems> struct divides
-	{
-		enum { num_of_elem = _Elems };
-		using type = conditional_t<value_t, num_of_elem>;
-		matrice_inl_cxauto operator() (const type& _Left, const type& _Right)
-		{
-			return impl::simd_op<value_t, num_of_elem>::div(_Left, _Right);
+	template<size_t _Elems> struct divides {
+		using type = typename _base_type<_Elems>::type;
+		enum { size = _base_type<_Elems>::num_of_elem };
+		HOST_INL_CXPR_T operator() (const type& _Left, const type& _Right) {
+			return impl::simd_vop<value_t, size>::div(_Left, _Right);
 		}
 	};
-	template<size_t _Elems> struct abs
-	{
-		enum { num_of_elem = _Elems };
-		using type = conditional_t<value_t, num_of_elem>;
-		matrice_inl_cxauto operator() (const type& _Right)
-		{
-			return impl::simd_op<value_t, num_of_elem>::abs(_Right);
+
+	/**
+	 * ... - vertical unary arithmetic operations.
+	 */
+	template<size_t _Elems> struct abs {
+		using type = typename _base_type<_Elems>::type;
+		enum { size = _base_type<_Elems>::num_of_elem };
+		HOST_INL_CXPR_T operator() (const type& _Right) {
+			return impl::simd_vop<value_t, size>::abs(_Right);
 		}
 	};
+
+	/**
+	 * adaptor - for data loading, storing and horizontal collection.
+	 */
+	template<size_t _Elems> using adaptor = impl::simd_hop<value_t, _Elems>;
 };
 template<typename _Fn, typename... _Args>
-matrice_inl_cxauto _Transform_impl(_Fn _Func, const _Args&... _args) { return _Func(_args...); }
+HOST_INL_CXPR_T _Transform_impl(const _Args&... _args) {
+	//_Fn _Func;
+	return _Fn()(_args...);
+}
 }
 template<typename _Fn, typename... _Args>
-matrice_inl_cxauto transform(_Fn _Func, const _Args&... _args) { return (details::_Transform_impl(_Func, _args.data()...)); }
+HOST_INL_CXPR_T transform(const _Args&... _args) { 
+	return (detail::_Transform_impl<_Fn>(_args.data()...)); 
+}
 MATRICE_ARCH_END
 
 #endif

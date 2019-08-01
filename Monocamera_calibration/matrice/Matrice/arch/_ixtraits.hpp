@@ -1,6 +1,7 @@
 #pragma once
-#include "../private/_expr_type_traits.h"
+#include "../private/_type_traits.h"
 #include "../util/_macros.h"
+
 #ifdef __AVX__
 #include <mmintrin.h>    //_m64
 #include <emmintrin.h>   //_m128
@@ -27,11 +28,44 @@ template<typename T> struct conditional<T, 16>
 };
 template<typename T, int _Elems> using conditional_t = typename conditional<T, _Elems>::type;
 
+template<typename T> struct packet_size {
+	static_assert(true, "Unsupported data type.");
+};
+template<> struct packet_size<float> {
+	static constexpr int value =
+#if MATRICE_SIMD_ARCH == MATRICE_SIMD_AVX
+		1 << MATRICE_SIMD_AVX
+#elif MATRICE_SIMD_ARCH == MATRICE_SIMD_AVX512
+		1 << MATRICE_SIMD_AVX512
+#else
+		1 << MATRICE_SIMD_SSE
+#endif
+		;
+};
+template<> struct packet_size<double> {
+	static constexpr int value =
+#if MATRICE_SIMD_ARCH == MATRICE_SIMD_AVX
+		1 << ~-MATRICE_SIMD_AVX
+#elif MATRICE_SIMD_ARCH == MATRICE_SIMD_AVX512
+		1 << ~-MATRICE_SIMD_AVX512
+#else
+		1 << ~-MATRICE_SIMD_SSE
+#endif
+		;
+};
+
+template<typename T>
+MATRICE_HOST_INL constexpr auto packet_size_v = packet_size<T>::value;
+
 template<typename T, int _Elems> struct simd_traits
 {
 	struct is_sfp8 { enum { value = is_float32<T>::value && _Elems == 8 }; };
 	struct is_dfp8 { enum { value = is_float64<T>::value && _Elems == 8 }; };
 };
+template<typename T, int _Elems> MATRICE_HOST_INL
+constexpr auto is_simd_sfx8_v = simd_traits<T, _Elems>::is_sfp8::value;
+template<typename T, int _Elems> MATRICE_HOST_INL
+constexpr auto is_simd_dfx8_v = simd_traits<T, _Elems>::is_dfp8::value;
 #pragma endregion
 MATRICE_ARCH_END
 #endif // __AVX__

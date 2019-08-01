@@ -18,15 +18,13 @@ along with this program.If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 #include <type_traits>
 #include "../util/_macros.h"
-#include "_expr_type_traits.h"
+#include "_type_traits.h"
 #include "_memory.h"
 
 MATRICE_PRIVATE_BEGIN
-using std::size_t;
-template<typename T> struct memory_base_v1
-{
+template<typename T> struct memory_base_v1 {
 	using value_t = T;
-	using pointer = value_t * ;
+	using pointer = value_t*;
 	using const_pointer = const pointer;
 };
 ///<!-- generic class for device memory operation-->
