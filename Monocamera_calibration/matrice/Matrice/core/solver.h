@@ -99,7 +99,7 @@ struct LinearOp MATRICE_NONHERITABLE
 				return OpBase<value_t>::_Impl(Op::_Aview = U, Op::_Bview = S, Op::_Cview = V);
 			});
 		};
-		MATRICE_HOST_FINL constexpr auto operator() (std::_Ph<0> _ph = {}) {
+		MATRICE_HOST_FINL constexpr decltype(auto) operator() (std::_Ph<0> _ph = {}) {
 			OpBase<value_t>::_Launch();
 			Matrix_<value_t, _Mtx::CompileTimeCols, min(_Mtx::CompileTimeCols, 1)> X(U.cols(), 1);
 			transform([&](value_t val)->value_t{return (val);}, V.begin(), V.end(), V.cols(), X.begin());
@@ -114,9 +114,9 @@ struct LinearOp MATRICE_NONHERITABLE
 			return (X);
 		}
 		//\return singular values
-		MATRICE_HOST_FINL auto& sv() { OpBase<value_t>::_Launch(); return (S); }
+		MATRICE_HOST_FINL decltype(auto) sv() { OpBase<value_t>::_Launch(); return (S); }
 		//\return V^{T} expression
-		MATRICE_HOST_FINL auto vt() { OpBase<value_t>::_Launch(); return (V.transpose()); }
+		MATRICE_HOST_FINL decltype(auto) vt() { OpBase<value_t>::_Launch(); return (V.transpose()); }
 	private:
 		const _Mtx& U;
 		Matrix_<value_t, _Mtx::CompileTimeCols, min(_Mtx::CompileTimeCols,1)> S;
@@ -173,14 +173,14 @@ public:
 		constexpr Linear() = default;
 		constexpr Linear(const Matrix_<_M, _N>& coef) : A(coef) { _Pre_solve(); }
 
-		auto operator()(const Matrix_<CompileTimeRows, CompileTimeCols>& coef)
+		decltype(auto) operator()(const Matrix_<CompileTimeRows, CompileTimeCols>& coef)
 		{
 			Matrix_<CompileTimeCols, min(CompileTimeCols, 1)> x(CompileTimeCols, 1);
 			A = coef; Base::_Perf(x.begin());
 			return (x);
 		}
 		
-		template<int ComileTimeNrhs> auto& solve(Matrix_<CompileTimeCols, ComileTimeNrhs>& b)
+		template<int ComileTimeNrhs> decltype(auto) solve(Matrix_<CompileTimeCols, ComileTimeNrhs>& b)
 		{
 			for (std::ptrdiff_t offset = 0; offset < ComileTimeNrhs; ++offset) 
 				Base::_Perf(b.begin() + offset, ComileTimeNrhs);
