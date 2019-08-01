@@ -35,9 +35,9 @@ template<pattern_type _Type = squared> struct pattern
 	INLINE size_t count() const { return m_rows * m_cols; }
 	template<typename _Sizety>
 	INLINE _Sizety size() const { return _Sizety(m_cols, m_rows); }
-	INLINE auto pitch() const { return m_size; }
-	INLINE auto rows() const { return m_rows; }
-	INLINE auto cols() const { return m_cols; }
+	INLINE size_t pitch() const { return m_size; }
+	INLINE size_t rows() const { return m_rows; }
+	INLINE size_t cols() const { return m_cols; }
 private:
 	size_t m_rows, m_cols; float m_size;
 };
@@ -69,31 +69,31 @@ public:
 	}
 
 	// \get planar model points
-	INLINE auto& planar_points() { return _Retrieve_from_bg(); }
-	INLINE const auto& planar_points() const { return _Retrieve_from_bg(); }
+	INLINE decltype(auto) planar_points() { return _Retrieve_from_bg(); }
+	INLINE const decltype(auto) planar_points() const { return _Retrieve_from_bg(); }
 
 	// \get i-th image points
-	INLINE auto& image_points(size_t i) { return (m_ipoints[i]); }
-	INLINE const auto& image_points(size_t i) const { return (m_ipoints[i]); }
-	INLINE const auto& image_indices() const { return (m_indices);}
+	INLINE ptarray_t& image_points(size_t i) { return (m_ipoints[i]); }
+	INLINE const ptarray_t& image_points(size_t i) const { return (m_ipoints[i]); }
+	INLINE const ptarray_t& image_indices() const { return (m_indices);}
 
 	// \image width and height
-	INLINE auto& image_width() { return m_iw; }
-	INLINE auto& image_height() { return m_ih; }
-	INLINE const auto& image_width() const { return m_iw; }
-	INLINE const auto& image_height() const { return m_ih; }
+	INLINE size_t& image_width() { return m_iw; }
+	INLINE size_t& image_height() { return m_ih; }
+	INLINE const size_t& image_width() const { return m_iw; }
+	INLINE const size_t& image_height() const { return m_ih; }
 
-	INLINE auto& scale() { return m_scale; };
-	INLINE const auto& scale() const { return m_scale; };
-	INLINE auto& error() { return m_error; };
-	INLINE const auto& error() const { return m_error; };
+	INLINE value_t& scale() { return m_scale; };
+	INLINE const value_t& scale() const { return m_scale; };
+	INLINE value_t& error() { return m_error; };
+	INLINE const value_t& error() const { return m_error; };
  
 	// \perform calibration and return internal params
 	template<size_t _Option = optimized, size_t _Dmodel = D2U>
 	INLINE plane_array& run();
 	
-	INLINE auto operator()() const { return (m_params);}
-	INLINE auto operator()(size_t i) const {
+	INLINE plane_array operator()() const { return (m_params);}
+	INLINE decltype(auto) operator()(size_t i) const {
 		return types::Vec_<value_t, 6>{m_poses[i][0], m_poses[i][1], m_poses[i][2], m_poses[i][3], m_poses[i][4], m_poses[i][5]};
 	}
 private:
