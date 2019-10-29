@@ -70,7 +70,7 @@ public:
 
 	// \get planar model points
 	INLINE decltype(auto) planar_points() { return _Retrieve_from_bg(); }
-	INLINE const decltype(auto) planar_points() const { return _Retrieve_from_bg(); }
+	INLINE decltype(auto) planar_points() const { return _Retrieve_from_bg(); }
 
 	// \get i-th image points
 	INLINE ptarray_t& image_points(size_t i) { return (m_ipoints[i]); }
