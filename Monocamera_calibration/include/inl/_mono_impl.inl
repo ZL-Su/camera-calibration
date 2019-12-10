@@ -16,23 +16,26 @@ You should have received a copy of the GNU General Public License along with
 this program. If not, see <http://www.gnu.org/licenses/>.
 ****************************************************************************/
 #pragma once
+
 #include <opencv2\core.hpp>
 #include <opencv2\imgproc.hpp>
 #include <opencv2\imgcodecs.hpp>
 #include <opencv2\calib3d.hpp>
-#include <Matrice\arch\ixpacket.h>
+#include <Matrice/core/matrix.h>
 #include <Matrice\core\solver.h>
+#include <Matrice\arch\ixpacket.h>
 #include <Matrice\algs\geometry\transform.h>
 #include <Matrice\algs\geometry\normalization.h>
 #include "../mono_calibrator.h"
 
-template<typename T, dgelom::pattern_type _Patt, size_t _Order>
-INLINE void dgelom::mono_calibrator<T, _Patt, _Order>::_Retrieve_from_bg(){
+namespace dgelom {
+template<typename T, pattern_type _Patt, uint32_t _Order>
+INLINE void mono_calibrator<T, _Patt, _Order>::_Retrieve_from_bg() {
 	if (_My_futures.front().valid()) _My_futures.front().get();
 }
 
-template<typename T, dgelom::pattern_type _Patt, size_t _Order> 
-INLINE auto& dgelom::mono_calibrator<T, _Patt, _Order>::_Get_image_points(){
+template<typename T, pattern_type _Patt, uint32_t _Order>
+INLINE auto& mono_calibrator<T, _Patt, _Order>::_Get_image_points() {
 	using namespace cv;
 	
 	_My_futures.push_back(std::async(std::launch::async, [&] {
@@ -78,9 +81,8 @@ INLINE auto& dgelom::mono_calibrator<T, _Patt, _Order>::_Get_image_points(){
 	return (_My_futures.back());
 }
 
-template<typename T, dgelom::pattern_type _Patt, size_t _Order>
-INLINE auto& dgelom::mono_calibrator<T, _Patt, _Order>::_Get_planar_points()
-{
+template<typename T, pattern_type _Patt, uint32_t _Order>
+INLINE auto& mono_calibrator<T, _Patt, _Order>::_Get_planar_points() {
 	_My_futures.push_back(std::async(std::launch::async, [&] {
 	const auto _Size = m_pattern.size<std::pair<size_t, size_t>>();
 	const auto _Pitch = m_pattern.pitch();
@@ -98,10 +100,10 @@ INLINE auto& dgelom::mono_calibrator<T, _Patt, _Order>::_Get_planar_points()
 	return m_points;
 }
 
-template<typename T, dgelom::pattern_type _Patt, size_t _Order>
-INLINE void dgelom::mono_calibrator<T, _Patt, _Order>::_Normalize_points(){
+template<typename T, pattern_type _Patt, uint32_t _Order>
+INLINE void mono_calibrator<T, _Patt, _Order>::_Normalize_points(){
 	enum {_Elems = 4};
-	using packed_t = simd::Packet_<typename ptarray_t::value_t, _Elems>;
+	using packed_t = simd::template Packet_<typename ptarray_t::value_t, _Elems>;
 	if (_My_futures.back().valid()) _My_futures.back().get();
 
 	m_normal = {value_t(2)/m_iw, 0., -1., 0., value_t(2)/m_ih, -1, 0., 0., -1. };
@@ -124,9 +126,8 @@ INLINE void dgelom::mono_calibrator<T, _Patt, _Order>::_Normalize_points(){
 	return;
 }
 
-template<typename T, dgelom::pattern_type _Patt, size_t _Order>
-INLINE void dgelom::mono_calibrator<T, _Patt, _Order>::_Get_true_to_scale()
-{
+template<typename T, pattern_type _Patt, uint32_t _Order>
+INLINE void mono_calibrator<T, _Patt, _Order>::_Get_true_to_scale() {
 	if (_My_futures.back().valid()) _My_futures.back().get();
 	
 	_My_future_scale = std::async(std::launch::async, [&] {
@@ -155,9 +156,9 @@ INLINE void dgelom::mono_calibrator<T, _Patt, _Order>::_Get_true_to_scale()
 	});
 }
 
-template<typename T, dgelom::pattern_type _Patt, size_t _Order>
-INLINE typename dgelom::mono_calibrator<T, _Patt, _Order>::matrix3x3 dgelom::mono_calibrator<T, _Patt, _Order>::_Find_homography(size_t i)
-{
+template<typename T, pattern_type _Patt, uint32_t _Order>
+INLINE typename mono_calibrator<T, _Patt, _Order>::matrix3x3 
+mono_calibrator<T, _Patt, _Order>::_Find_homography(uint32_t i) {
 	const auto& _Points = m_ipoints[i];
 
 	size_t _Npts = _Points.cols();
@@ -180,7 +181,7 @@ INLINE typename dgelom::mono_calibrator<T, _Patt, _Order>::matrix3x3 dgelom::mon
 		_L[c2][6] = -y * X, _L[c2][7] = -y * Y, _L[c2][8] = -y;
 	}
 	
-	using Op_t = types::LinearOp::Svd<decltype(_L)>;
+	using Op_t = detail::LinearOp::Svd<decltype(_L)>;
 	typename types::Solver::Linear_<Op_t> solver(_L);
 	auto _Ret = solver.solve();
 	auto _Nor = _Ret.normalize(_Ret(8));
@@ -189,10 +190,11 @@ INLINE typename dgelom::mono_calibrator<T, _Patt, _Order>::matrix3x3 dgelom::mon
 		               _Nor(4), _Nor(5), _Nor(6), _Nor(7), 1.0 };
 }
 
-template<typename T, dgelom::pattern_type _Patt, size_t _Order>
-INLINE typename dgelom::mono_calibrator<T, _Patt, _Order>::plane_array& dgelom::mono_calibrator<T, _Patt, _Order>::_Analysis() noexcept {
+template<typename T, pattern_type _Patt, uint32_t _Order>
+INLINE typename mono_calibrator<T, _Patt, _Order>::plane_array& 
+mono_calibrator<T, _Patt, _Order>::_Analysis() noexcept {
 	enum { _Elems = Npose, };
-	using matrix6x1 = types::Matrix_<value_t, _Elems, compile_time_size<>::val_1>;
+	using matrix6x1 = Matrix_<value_t, _Elems, compile_time_size<>::val_1>;
 	using packed_t = simd::Packet_<value_t, 4>;
 	
 	_Normalize_points();
@@ -226,7 +228,7 @@ INLINE typename dgelom::mono_calibrator<T, _Patt, _Order>::plane_array& dgelom::
 		}
 	}
 
-	using Op_t = types::LinearOp::Svd<decltype(_V)>;
+	using Op_t = detail::LinearOp::Svd<decltype(_V)>;
 	typename types::Solver::Linear_<Op_t> solver(_V);
 	auto _Ret = solver.solve();
 	
@@ -257,8 +259,8 @@ INLINE typename dgelom::mono_calibrator<T, _Patt, _Order>::plane_array& dgelom::
 		const auto& _H_view = _Homo_buf[i];
 		auto _Ex_r = _K_inv.mul(_Normal_inv.mul(_H_view).eval<matrix3x3>());
 
-		types::Vec3_<value_t> _R1{ _Ex_r(0,0), _Ex_r(1,0), _Ex_r(2,0) };
-		types::Vec3_<value_t> _R2{ _Ex_r(0,1), _Ex_r(1,1), _Ex_r(2,1) };
+		dgelom::Vec3_<value_t> _R1{ _Ex_r(0,0), _Ex_r(1,0), _Ex_r(2,0) };
+		dgelom::Vec3_<value_t> _R2{ _Ex_r(0,1), _Ex_r(1,1), _Ex_r(2,1) };
 		value_t _Lambda[] = { 1 / _R1.norm_2(), 1 / _R2.norm_2(), 0.};
 		_R1 = _Lambda[0] * _R1, _R2 = _Lambda[1] * _R2;
 		
@@ -269,21 +271,25 @@ INLINE typename dgelom::mono_calibrator<T, _Patt, _Order>::plane_array& dgelom::
 
 		decltype(_R1) _R3 = _R1.cross(_R2);
 		matrix3x3 _R{ _R1.x, _R2.x, _R3.x, _R1.y, _R2.y, _R3.y, _R1.z, _R2.z, _R3.z };
-		types::LinearOp::Svd<decltype(_R)> _Op(_R);
+		detail::LinearOp::Svd<decltype(_R)> _Op(_R);
 		decltype(_R) _R_opt = _R.mul(_Op.vt());
 		dgelom::rodrigues(_R_opt, _Begin);
 	}
 	return (m_params);
 }
 
-template<typename T, dgelom::pattern_type _Patt, size_t _Order>
-template<size_t _Option, size_t _Dmodel>
-INLINE typename dgelom::mono_calibrator<T, _Patt, _Order>::plane_array& dgelom::mono_calibrator<T, _Patt, _Order>::run()
-{
-	if constexpr (_Option == analytic) return _Analysis();
-	_Optimize<_Dmodel>(_Analysis());
+template<typename T, pattern_type _Patt, uint32_t _Order>
+template<uint32_t _Dmodel, bool _Is_req_optim>
+INLINE typename mono_calibrator<T, _Patt, _Order>::plane_array& 
+mono_calibrator<T, _Patt, _Order>::run() {
+	if constexpr (_Is_req_optim)
+		_Optimize<_Dmodel>(_Analysis());
+	else
+		return _Analysis();
 
-	if (_My_future_scale.valid()) _My_future_scale.get();
+	if (_My_future_scale.valid()) 
+		_My_future_scale.get();
 
 	return (m_params);
+}
 }
