@@ -77,8 +77,12 @@ public:
 	}
 
 	// \get planar model points
-	INLINE decltype(auto) planar_points() { return _Retrieve_from_bg(); }
-	INLINE decltype(auto) planar_points() const { return _Retrieve_from_bg(); }
+	INLINE decltype(auto) planar_points() { 
+		return m_points;
+	}
+	INLINE decltype(auto) planar_points() const { 
+		return m_points;
+	}
 
 	// \get i-th image points
 	INLINE ptarray_t image_points(size_t i) { 
@@ -87,7 +91,11 @@ public:
 	INLINE const ptarray_t image_points(size_t i) const { 
 		return m_imgpts.block<::extent_x>(i << 1, 2);
 	}
-	INLINE const ptarray_t& image_indices() const { return (m_effindices);}
+
+	// \get valid image indices
+	INLINE decltype(auto) valid_image_indices() const { 
+		return (m_effindices);
+	}
 
 	// \image width and height
 	INLINE size_t& image_width() { return m_iw; }
@@ -101,18 +109,20 @@ public:
 	INLINE const value_t& error() const { return m_error; };
  
 	// \perform calibration and return internal params
-	INLINE plane_array& run(bool with_optim = true);
+	INLINE plane_array& run();
 	
+	// \return internal parameters.
 	INLINE plane_array operator()() const { return (m_params);}
+
+	// \return external parameters for pose i.
 	INLINE decltype(auto) operator()(size_t i) const {
 		return Matrix_<value_t, 6, 1>{m_poses[i][0], m_poses[i][1], m_poses[i][2], m_poses[i][3], m_poses[i][4], m_poses[i][5]};
 	}
 
-//private:
+private:
 	INLINE void _Get_image_points();
 	INLINE void _Get_planar_points();
 	INLINE void _Retrieve_from_bg();
-	INLINE void _Normalize_points();
 	INLINE void _Get_true_to_scale();
 	INLINE ptarray_t _Normalize(size_t i);
 	INLINE matrix3x3 _Find_homography(size_t i);

@@ -42,7 +42,7 @@ INLINE void mono_calibrator<T, _Patt, _Order>::_Get_image_points() {
 	std::cout << " >> Camera calibrator detects corners: \n";
 #endif
 		const auto _Size = m_pattern.size<Size>();
-		const auto _Nimgs = 10/*m_fnames.count()*/;
+		const auto _Nimgs = m_fnames.count();
 		const int  _N = m_pattern.count();
 
 		m_imgpts.create(_Nimgs << 1, _N);
@@ -72,15 +72,10 @@ INLINE void mono_calibrator<T, _Patt, _Order>::_Get_image_points() {
 					TermCriteria(criteria_t::COUNT + criteria_t::EPS, 30, 0.1));
 				
 				auto _Px = m_imgpts[i << 1], _Py = m_imgpts[i << 1|1];
-				//ptarray_t _Mpoints(4, _N, ptarray_t::inf);
-				//using iterator = typename ptarray_t::iterator;
-				//iterator _Beginx = _Mpoints[0], _Beginy = _Mpoints[1];
 				size_t _Pos = 0;
 				for_each(_Points, [&](const auto& _Point) {
-					//_Beginx[_Pos] = _Point.x; _Beginy[_Pos++] = _Point.y;
 					_Px[_Pos] = _Point.x; _Py[_Pos++] = _Point.y;
 				});
-				//m_ipoints.emplace_back(_Mpoints);
 				m_effindices.push_back(static_cast<size_t>(i));
 #ifdef MATRICE_DEBUG
 				std::cout << m_pattern.cols() << " x " << m_pattern.rows() << " = " << _Points.size() << " corners\n";
@@ -106,29 +101,6 @@ INLINE void mono_calibrator<T, _Patt, _Order>::_Get_planar_points() {
 		}
 	}
 }
-
-//template<typename T, pattern_type _Patt, distortion_model _Order>
-//INLINE void mono_calibrator<T, _Patt, _Order>::_Normalize_points(){
-//	enum {_Elems = 4};
-//	using packed_t = simd::template Packet_<ptarray_t::value_t, _Elems>;
-//
-//	m_normal = {2./m_iw, 0., -1., 0., 2./m_ih, -1, 0., 0., -1. };
-//
-//	packed_t _Unit(1.), _Normx(m_normal(0)), _Normy(m_normal(4));
-//	for (size_t j = 0; j < m_ipoints.size(); ++j) {
-//		auto& _M_points = m_ipoints[j];
-//		auto _Pos_x = _M_points[0], _Pos_y = _M_points[1];
-//
-//		for (int i = 0; i < _M_points.cols(); i += _Elems) {
-//			(packed_t(_Pos_x + i)*_Normx - _Unit).unpack(_M_points[2] + i);
-//			(packed_t(_Pos_y + i)*_Normy - _Unit).unpack(_M_points[3] + i);
-//		}
-//
-//		size_t ii = _M_points.cols() - _M_points.cols() / _Elems;
-//		(packed_t(_Pos_x + ii)*_Normx - _Unit).unpack(_M_points[2] + ii);
-//		(packed_t(_Pos_y + ii)*_Normy - _Unit).unpack(_M_points[3] + ii);
-//	}
-//}
 
 template<typename T, pattern_type _Patt, distortion_model _Order>
 INLINE typename mono_calibrator<T, _Patt, _Order>::ptarray_t
@@ -303,66 +275,12 @@ mono_calibrator<T, _Patt, _Order>::_Analysis() noexcept {
 		rodrigues(_R_opt, _Begin);
 	}
 
-	{
-		auto _Nviews = this->m_effindices.size();
-		auto _Nctrls = this->m_points.cols();
-
-		auto &_Fx = m_params(0), &_Fy = m_params(1);
-		auto &_Cx = m_params(2), &_Cy = m_params(3);
-		auto &_K1 = m_params(4), &_K2 = m_params(5);
-		auto &_Fs = m_params(6);
-
-		Matrix<default_type> _Plane_points(_Nctrls, 3);
-		transform(m_points[0], m_points[0] + _Nctrls, _Plane_points.begin(), 3);
-		transform(m_points[1], m_points[1] + _Nctrls, _Plane_points.begin() + 1, 3);
-		fill(_Plane_points.begin() + 2, _Plane_points.end(), 3, default_type(0));
-
-		Matrix_<default_type, Npars, 1> _Vars = 1;
-		_Vars(4) = _Vars(5) = 0.001;
-		auto _Problem = std::make_shared<xop::Problem>();
-		for (auto _Idx = 0; _Idx < _Nviews; ++_Idx) {
-			auto _Row = m_effindices[_Idx] << 1;
-			auto _Pose = m_poses.ptr(_Idx);
-			for (index_t i = 0; i < _Nctrls; ++i) {
-				const auto _U0 = m_imgpts[_Row][i];
-				const auto _V0 = m_imgpts[_Row + 1][i];
-				const Vec_<default_type, 2> _Point{ _U0, _V0 };
-				auto _Cost = CostFunc::_Std_mono_error<decltype(_Point), Dmodel>
-					::Create(_Fx, _Fy, _Cx, _Cy, _Point);
-				_Problem->AddResidualBlock(_Cost, nullptr/*new xop::HuberLoss(0.05)*/, _Vars.begin(), _Pose, _Plane_points[i]);
-			}
-		}
-
-		xop::Solver::Options _Options;
-		_Options.linear_solver_type = xop::DENSE_SCHUR;
-		_Options.max_num_iterations = 5;
-		_Options.num_threads = 8;
-		_Options.minimizer_progress_to_stdout = true;
-
-		auto _Summary = std::make_unique<xop::Solver::Summary>();
-		xop::Solve(_Options, _Problem.get(), _Summary.get());
-		std::cout << _Summary->FullReport() << std::endl;
-		m_params = m_params * _Vars;
-
-		m_error = _Total_error(_Problem);
-	}
-
 	return (m_params);
 }
 
 template<typename T, pattern_type _Patt, distortion_model _Order>
 INLINE typename mono_calibrator<T, _Patt, _Order>::plane_array& 
-mono_calibrator<T, _Patt, _Order>::run(bool with_optim) {
-	if (with_optim) {
-		_Analysis();
-		_Optimize();
-	}
-	else
-		return _Analysis();
-
-	if (_My_future_scale.valid()) 
-		_My_future_scale.get();
-
-	return (m_params);
+mono_calibrator<T, _Patt, _Order>::run() {
+	return _Analysis();
 }
 }
