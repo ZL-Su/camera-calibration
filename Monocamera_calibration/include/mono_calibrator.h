@@ -22,35 +22,38 @@ this program. If not, see <http://www.gnu.org/licenses/>.
 #include <Matrice/forward.hpp>
 
 namespace dgelom {
+
 #define INLINE MATRICE_HOST_FINL
 
-enum calib_evaluator_type {analytic = 0x0001, optimized = 0x0000};
-enum distortion_model { D2U = 0x0003, U2D = 0x0002 };
-enum pattern_type {squared = 0, circular = 1, };
+enum class distortion_model { D2U = 0x0003, U2D = 0x0002 };
+enum class pattern_type {squared = 0, circular = 1, };
 template<pattern_type _Type = pattern_type::squared> struct pattern
 {
-	enum { type = _Type };
+	static constexpr auto type = _Type;
 	INLINE pattern() {}
-	INLINE pattern(uint32_t rows, uint32_t cols, float size)
-		: m_rows(rows), m_cols(cols), m_size(size) {}
+	INLINE pattern(size_t rows, size_t cols, float spacing)
+		: m_rows(rows), m_cols(cols), m_spacing(spacing) {}
 
-	INLINE bool empty() { return m_rows == 0 || m_cols == 0 || m_size == 0; }
-	INLINE uint32_t count() const { return m_rows * m_cols; }
+	INLINE bool empty() { return m_rows == 0 || m_cols == 0 || m_spacing == 0; }
+	INLINE size_t count() const { return m_rows * m_cols; }
 	template<typename _Sizety>
 	INLINE _Sizety size() const { return _Sizety(m_cols, m_rows); }
-	INLINE uint32_t pitch() const { return m_size; }
-	INLINE uint32_t rows() const { return m_rows; }
-	INLINE uint32_t cols() const { return m_cols; }
+	INLINE size_t pitch() const { return m_spacing; }
+	INLINE size_t rows() const { return m_rows; }
+	INLINE size_t cols() const { return m_cols; }
+
 private:
-	uint32_t m_rows, m_cols; float m_size;
+	size_t m_rows, m_cols; 
+	float m_spacing;
 };
 
-template<typename T, pattern_type _Patt = pattern_type::squared, uint32_t _Order = 2>
-class mono_calibrator
-{
-	enum { Npars = 2 + 2 + _Order + 1, Npose = 6, Dmodel = U2D };
+template<typename T, 
+	pattern_type _Patt = pattern_type::squared, 
+	distortion_model _Model = distortion_model::D2U>
+class mono_calibrator {
+	enum { Npars = 2 + 2 + 2 + 1, Npose = 6 };
+	static constexpr auto Dmodel = _Model;
 	using img_info_t = IO::Dir_<0>;
-	std::vector<std::future<void>> _My_futures;
 	std::future<void> _My_future_scale;
 public:
 	using image_info_t = img_info_t;
@@ -78,15 +81,19 @@ public:
 	INLINE decltype(auto) planar_points() const { return _Retrieve_from_bg(); }
 
 	// \get i-th image points
-	INLINE ptarray_t& image_points(uint32_t i) { return (m_ipoints[i]); }
-	INLINE const ptarray_t& image_points(uint32_t i) const { return (m_ipoints[i]); }
-	INLINE const ptarray_t& image_indices() const { return (m_indices);}
+	INLINE ptarray_t image_points(size_t i) { 
+		return m_imgpts.block<::extent_x>(i << 1, 2);
+	}
+	INLINE const ptarray_t image_points(size_t i) const { 
+		return m_imgpts.block<::extent_x>(i << 1, 2);
+	}
+	INLINE const ptarray_t& image_indices() const { return (m_effindices);}
 
 	// \image width and height
-	INLINE uint32_t& image_width() { return m_iw; }
-	INLINE uint32_t& image_height() { return m_ih; }
-	INLINE const uint32_t& image_width() const { return m_iw; }
-	INLINE const uint32_t& image_height() const { return m_ih; }
+	INLINE size_t& image_width() { return m_iw; }
+	INLINE size_t& image_height() { return m_ih; }
+	INLINE const size_t& image_width() const { return m_iw; }
+	INLINE const size_t& image_height() const { return m_ih; }
 
 	INLINE value_t& scale() { return m_scale; };
 	INLINE const value_t& scale() const { return m_scale; };
@@ -94,37 +101,38 @@ public:
 	INLINE const value_t& error() const { return m_error; };
  
 	// \perform calibration and return internal params
-	template<uint32_t _Dmodel = D2U, bool _Is_req_optim = false>
-	INLINE plane_array& run();
+	INLINE plane_array& run(bool with_optim = true);
 	
 	INLINE plane_array operator()() const { return (m_params);}
-	INLINE decltype(auto) operator()(uint32_t i) const {
+	INLINE decltype(auto) operator()(size_t i) const {
 		return Matrix_<value_t, 6, 1>{m_poses[i][0], m_poses[i][1], m_poses[i][2], m_poses[i][3], m_poses[i][4], m_poses[i][5]};
 	}
-private:
-	INLINE auto& _Get_image_points();
-	INLINE auto& _Get_planar_points();
+
+//private:
+	INLINE void _Get_image_points();
+	INLINE void _Get_planar_points();
 	INLINE void _Retrieve_from_bg();
 	INLINE void _Normalize_points();
 	INLINE void _Get_true_to_scale();
-	INLINE matrix3x3 _Find_homography(uint32_t i);
+	INLINE ptarray_t _Normalize(size_t i);
+	INLINE matrix3x3 _Find_homography(size_t i);
 	INLINE plane_array& _Analysis() noexcept;
-	template<uint32_t _Dmodel>
-	INLINE void _Optimize(plane_array& _Params);
+	void _Optimize();
 
-	plane_array m_params = { 0 }; //fx, fx, cx, cy, k1, k2, fs
+	plane_array m_params = 0; //fx, fx, cx, cy, k1, k2, fs
 	matrix_t m_poses;
 	value_t m_error;
 	value_t m_scale = matrix_t::inf;
 
 	pattern_t m_pattern;
 	img_info_t m_fnames;
-	uint32_t m_iw, m_ih;
+	size_t m_iw, m_ih;
 
 	ptarray_t m_points;
-	std::vector<ptarray_t> m_ipoints;
-	std::vector<uint32_t> m_indices;
-	matrix3x3 m_normal = { matrix3x3::inf };
+	ptarray_t m_imgpts;
+	//std::vector<ptarray_t> m_ipoints;
+	std::vector<size_t> m_effindices;
+	matrix3x3 m_normal = matrix3x3::inf;
 };
 }
 
