@@ -41,7 +41,7 @@ INLINE void mono_calibrator<T, _Patt, _Order>::_Get_image_points() {
 	std::cout << " >> Camera calibrator detects corners: \n";
 #endif
 		const auto _Size = m_pattern.size<Size>();
-		const auto _Nimgs = m_fnames.count();
+		const auto _Nimgs = m_fnames.count()/8;
 		const int  _N = m_pattern.count();
 
 		m_imgpts.create(_Nimgs << 1, _N);
@@ -189,7 +189,7 @@ mono_calibrator<T, _Patt, _Order>::_Find_homography(size_t i) {
 
 template<typename T, pattern_type _Patt, distortion_model _Order>
 INLINE typename mono_calibrator<T, _Patt, _Order>::plane_array& 
-mono_calibrator<T, _Patt, _Order>::_Analysis() noexcept {
+mono_calibrator<T, _Patt, _Order>::_Analysis() {
 	enum { _Elems = Npose, };
 	using matrix6x1 = Matrix_<value_t, _Elems, compile_time_size<>::val_1>;
 	using packed_t = simd::Packet_<value_t, 4>;
@@ -252,6 +252,10 @@ mono_calibrator<T, _Patt, _Order>::_Analysis() noexcept {
 	auto fs = m_params(6) = _Ex(1);
 	m_params(4) = m_params(5) = 0.1;
 
+	const auto rows = m_effindices.size()*m_pattern.count() << 1;
+	Matrix_<value_t, ::dynamic, 2> A(rows);
+	Matrix_<value_t, ::dynamic, 1> b(rows);
+
 	matrix3x3 _K_inv{1/fx, -fs/(fx*fy), (cy*fs/fy - cx)/fx, 0, 1/fy, -cy/fy, 0, 0, 1};
 	for (size_t i = 0; i < m_poses.rows(); ++i) {
 		const auto& _H_view = _Homo_buf[i];
@@ -271,10 +275,45 @@ mono_calibrator<T, _Patt, _Order>::_Analysis() noexcept {
 		matrix3x3 _R{ _R1.x, _R2.x, _R3.x, _R1.y, _R2.y, _R3.y, _R1.z, _R2.z, _R3.z };
 		detail::LinearOp::Svd<decltype(_R)> _Op(_R);
 		decltype(_R) _R_opt = _R.mul(_Op.vt());
+
+		_Update_dist_eqs(i, A, b, _R_opt, _Begin);
+
 		rodrigues(_R_opt, _Begin);
 	}
 
+	auto B = A.t().mul(A).eval().inv();
+	const auto k = B.mul(A.t().mul(b).eval());
+	m_params(4) = k(0), m_params(5) = k(1);
+
 	return (m_params);
+}
+
+template<typename T, pattern_type _Patt, distortion_model _Model>
+INLINE void mono_calibrator<T, _Patt, _Model>::_Update_dist_eqs(size_t i, Matrix_<value_t, ::dynamic, 2>& A, Matrix_<value_t, ::dynamic, 1>& b, const matrix3x3& R, const value_t* T) {
+	const auto pt = m_imgpts.block<::extent_x>(i << 1, 2);
+	const auto fx = m_params(0), fy = m_params(1);
+	const auto cx = m_params(2), cy = m_params(3);
+	for (auto c = 0; c < m_imgpts.cols(); ++c) {
+		// observed image point
+		const auto u = pt[0][c], v = pt[1][c];
+		// distorted normalized image point 
+		const auto x_d = u / fx - cx, y_d = v / fy - cy;
+		// object point
+		Vec3_<value_t> X(m_points[0][c], m_points[1][c], 0);
+		// ideal normalized image point
+		decltype(X) x = R.mul(X) + decltype(X)(T[3], T[4], T[5]);
+
+		const auto j = i * m_imgpts.cols() + c;
+		if constexpr (Dmodel == distortion_model::D2U) {
+			const auto s = sqr(x_d) + sqr(y_d);
+			A[j << 1][0] = x_d * s, A[j << 1][1] = x_d * sqr(s);
+			A[j << 1|1][0] = y_d * s, A[j << 1|1][1] = y_d * sqr(s);
+			b(j << 1) = x_d - x.x/x.z, b(j << 1 | 1) = y_d - x.y/x.z;
+		}
+		else {
+
+		}
+	}
 }
 
 template<typename T, pattern_type _Patt, distortion_model _Order>

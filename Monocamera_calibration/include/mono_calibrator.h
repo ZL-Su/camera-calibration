@@ -126,7 +126,8 @@ private:
 	INLINE void _Get_true_to_scale();
 	INLINE ptarray_t _Normalize(size_t i);
 	INLINE matrix3x3 _Find_homography(size_t i);
-	INLINE plane_array& _Analysis() noexcept;
+	INLINE plane_array& _Analysis();
+	INLINE void _Update_dist_eqs(size_t i, Matrix_<value_t, ::dynamic, 2>& A, Matrix_<value_t, ::dynamic, 1>& b, const matrix3x3& R, const value_t* T);
 	void _Optimize();
 
 	plane_array m_params = 0; //fx, fx, cx, cy, k1, k2, fs

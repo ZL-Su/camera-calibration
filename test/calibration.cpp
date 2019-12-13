@@ -1,5 +1,6 @@
 #include <iostream>
 #include <mono_calibrator.h>
+#include <Matrice/algs/interpolation.h>
 
 using calibration_type = dgelom::mono_calibrator<double>;
 
