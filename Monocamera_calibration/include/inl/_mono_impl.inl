@@ -1,6 +1,6 @@
 /***************************************************************************
 This file is part of monocular camera calibration library.
-Copyright(C) 2018-, Zhilong (Dgelom) Su, all rights reserved.
+Copyright(C) 2018-2020, Zhilong (Dgelom) Su, all rights reserved.
 
 This program is free software : you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the Free
@@ -21,13 +21,12 @@ this program. If not, see <http://www.gnu.org/licenses/>.
 #include <opencv2\imgproc.hpp>
 #include <opencv2\imgcodecs.hpp>
 #include <opencv2\calib3d.hpp>
-#include <Matrice/core/matrix.h>
+#include <Matrice\core\matrix.h>
 #include <Matrice\core\solver.h>
 #include <Matrice\arch\ixpacket.h>
 #include <Matrice\algs\geometry\transform.h>
 #include <Matrice\algs\geometry\normalization.h>
-#include "../mono_calibrator.h"
-#include "../../src/cost/cost_functions.hpp"
+#include "..\mono_calibrator.h"
 
 namespace dgelom {
 template<typename T, pattern_type _Patt, distortion_model _Order>
