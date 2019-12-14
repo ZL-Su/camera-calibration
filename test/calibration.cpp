@@ -2,7 +2,8 @@
 #include <mono_calibrator.h>
 #include <Matrice/algs/interpolation.h>
 
-using calibration_type = dgelom::mono_calibrator<double>;
+using calibration_type = dgelom::mono_calibrator<double, 
+dgelom::pattern_type::squared, dgelom::distortion_model::U2D>;
 
 int main() {
 	calibration_type::image_info_t fname("E:\\SciR\\Datum\\calib_imgs");

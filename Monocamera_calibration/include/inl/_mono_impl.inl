@@ -41,7 +41,7 @@ INLINE void mono_calibrator<T, _Patt, _Order>::_Get_image_points() {
 	std::cout << " >> Camera calibrator detects corners: \n";
 #endif
 		const auto _Size = m_pattern.size<Size>();
-		const auto _Nimgs = m_fnames.count()/8;
+		const auto _Nimgs = m_fnames.count();
 		const int  _N = m_pattern.count();
 
 		m_imgpts.create(_Nimgs << 1, _N);
@@ -81,7 +81,7 @@ INLINE void mono_calibrator<T, _Patt, _Order>::_Get_image_points() {
 #endif
 			}
 		}
-		m_normal = { 2. / m_iw, 0., -1., 0., 2. / m_ih, -1, 0., 0., -1. };
+		m_normal = { 1. / m_iw, 0., -0.5, 0., 1. / m_ih, -0.5, 0., 0., -1. };
 }
 }
 
@@ -108,7 +108,7 @@ mono_calibrator<T, _Patt, _Order>::_Normalize(size_t i) {
 
 	ptarray_t _Normalized(2, m_imgpts.cols());
 
-	packed_t _Unit(1.), _Normx(m_normal(0)), _Normy(m_normal(4));
+	packed_t _Unit(0.5), _Normx(m_normal(0)), _Normy(m_normal(4));
 	auto _Pos_x = m_imgpts[i<<1], _Pos_y = m_imgpts[i<<1|1];
 
 	for (int i = 0; i < m_imgpts.cols(); i += packed_t::size) {
@@ -281,8 +281,9 @@ mono_calibrator<T, _Patt, _Order>::_Analysis() {
 		rodrigues(_R_opt, _Begin);
 	}
 
-	auto B = A.t().mul(A).eval().inv();
-	const auto k = B.mul(A.t().mul(b).eval());
+	auto AtAi = A.t().mul(A).eval().inv().eval();
+	auto Atb = A.t().mul(b).eval();
+	auto k = AtAi.mul(Atb);
 	m_params(4) = k(0), m_params(5) = k(1);
 
 	return (m_params);
@@ -293,25 +294,33 @@ INLINE void mono_calibrator<T, _Patt, _Model>::_Update_dist_eqs(size_t i, Matrix
 	const auto pt = m_imgpts.block<::extent_x>(i << 1, 2);
 	const auto fx = m_params(0), fy = m_params(1);
 	const auto cx = m_params(2), cy = m_params(3);
+	const auto fs = m_params(6);
 	for (auto c = 0; c < m_imgpts.cols(); ++c) {
 		// observed image point
 		const auto u = pt[0][c], v = pt[1][c];
 		// distorted normalized image point 
-		const auto x_d = u / fx - cx, y_d = v / fy - cy;
+		const auto x_d = (u - cx) / fx, y_d = (v - cy) / fy;
 		// object point
 		Vec3_<value_t> X(m_points[0][c], m_points[1][c], 0);
+		// point in camera frame
+		decltype(X) X_c = R.mul(X) + decltype(X)(T[3], T[4], T[5]);
 		// ideal normalized image point
-		decltype(X) x = R.mul(X) + decltype(X)(T[3], T[4], T[5]);
+		const auto x_i = X_c.x / X_c.z, y_i = X_c.y / X_c.z;
+		// ideal pixel point
+		const auto u_i = fx * x_i + cx, v_i = fy * y_i + cy;
 
 		const auto j = i * m_imgpts.cols() + c;
 		if constexpr (Dmodel == distortion_model::D2U) {
 			const auto s = sqr(x_d) + sqr(y_d);
-			A[j << 1][0] = x_d * s, A[j << 1][1] = x_d * sqr(s);
-			A[j << 1|1][0] = y_d * s, A[j << 1|1][1] = y_d * sqr(s);
-			b(j << 1) = x_d - x.x/x.z, b(j << 1 | 1) = y_d - x.y/x.z;
+			A[j << 1][0] = (u-cx)*s, A[j << 1][1] = (u - cx)*sqr(s);
+			A[j << 1|1][0] = (v-cy)*s, A[j << 1|1][1] = (v-cy)*sqr(s);
+			b(j << 1) = u_i - u, b(j << 1 | 1) = v_i - v;
 		}
 		else {
-
+			const auto s = sqr(x_i) + sqr(y_i);
+			A[j<< 1][0] = (u_i - cx)*s, A[j << 1][1] = (u_i - cx)*sqr(s);
+			A[j<<1|1][0] = (v_i - cy)*s, A[j<<1|1][1] = (v_i - cy)*sqr(s);
+			b(j << 1) = u - u_i, b(j << 1 | 1) = v - v_i;
 		}
 	}
 }
