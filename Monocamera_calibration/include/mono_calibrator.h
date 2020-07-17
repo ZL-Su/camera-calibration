@@ -65,12 +65,12 @@ public:
 	using pattern_t = pattern<_Patt>;
 
 	// \constructor for image points fed by user
-	INLINE mono_calibrator(const pattern_t& _Pattern)
+	mono_calibrator(const pattern_t& _Pattern)
 		:m_pattern(_Pattern) {
 		_Get_planar_points();
 	}
 	// \constructor for image path fed by user
-	INLINE mono_calibrator(const img_info_t& _Fnames, const pattern_t& _Pattern) 
+	mono_calibrator(const img_info_t& _Fnames, const pattern_t& _Pattern) 
 		:m_fnames(_Fnames), m_pattern(_Pattern) {
 		_Get_planar_points();
 		_Get_image_points();
