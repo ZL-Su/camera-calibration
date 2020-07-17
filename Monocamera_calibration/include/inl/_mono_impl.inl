@@ -177,7 +177,7 @@ mono_calibrator<T, _Patt, _Order>::_Find_homography(size_t i) {
 	}
 	
 	using Op_t = detail::LinearOp::Svd<decltype(_L)>;
-	typename types::Solver::Linear_<Op_t> solver(_L);
+	typename detail::Solver::Linear_<Op_t> solver(_L);
 	auto _Ret = solver.solve();
 	auto _Nor = _Ret.normalize(_Ret(8));
 
@@ -225,7 +225,7 @@ mono_calibrator<T, _Patt, _Order>::_Analysis() {
 	}
 
 	using Op_t = detail::LinearOp::Svd<decltype(_V)>;
-	typename types::Solver::Linear_<Op_t> solver(_V);
+	typename detail::Solver::Linear_<Op_t> solver(_V);
 	auto _Ret = solver.solve();
 	
 	value_t B11 = _Ret(0), B12 = _Ret(1), B13 = _Ret(3);
@@ -311,15 +311,15 @@ INLINE void mono_calibrator<T, _Patt, _Model>::_Update_dist_eqs(size_t i, Matrix
 
 		const auto j = i * m_imgpts.cols() + c;
 		if constexpr (Dmodel == distortion_model::D2U) {
-			const auto s = sqr(x_d) + sqr(y_d);
-			A[j << 1][0] = (u-cx)*s, A[j << 1][1] = (u - cx)*sqr(s);
-			A[j << 1|1][0] = (v-cy)*s, A[j << 1|1][1] = (v-cy)*sqr(s);
+			const auto s = sq(x_d) + sq(y_d);
+			A[j << 1][0] = (u-cx)*s, A[j << 1][1] = (u - cx)*sq(s);
+			A[j << 1|1][0] = (v-cy)*s, A[j << 1|1][1] = (v-cy)*sq(s);
 			b(j << 1) = u_i - u, b(j << 1 | 1) = v_i - v;
 		}
 		else {
-			const auto s = sqr(x_i) + sqr(y_i);
-			A[j<< 1][0] = (u_i - cx)*s, A[j << 1][1] = (u_i - cx)*sqr(s);
-			A[j<<1|1][0] = (v_i - cy)*s, A[j<<1|1][1] = (v_i - cy)*sqr(s);
+			const auto s = sq(x_i) + sq(y_i);
+			A[j<< 1][0] = (u_i - cx)*s, A[j << 1][1] = (u_i - cx)*sq(s);
+			A[j<<1|1][0] = (v_i - cy)*s, A[j<<1|1][1] = (v_i - cy)*sq(s);
 			b(j << 1) = u - u_i, b(j << 1 | 1) = v - v_i;
 		}
 	}
