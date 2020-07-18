@@ -44,8 +44,8 @@ INLINE void mono_calibrator<T, _Patt, _Order>::_Get_image_points() {
 		const auto _Nimgs = m_fnames.count();
 		const int  _N = m_pattern.count();
 
-		m_imgpts.create(_Nimgs << 1, _N);
 		m_effindices.clear();
+		std::vector<std::vector<Point2f>> _Impts(_Nimgs);
 #pragma omp parallel 
 {
 #pragma omp for
@@ -70,17 +70,26 @@ INLINE void mono_calibrator<T, _Patt, _Order>::_Get_image_points() {
 					cornerSubPix(_Src, _Points, Size(11, 11), Size(-1, -1),
 					TermCriteria(criteria_t::COUNT + criteria_t::EPS, 30, 0.1));
 				
-				auto _Px = m_imgpts[i << 1], _Py = m_imgpts[i << 1|1];
-				size_t _Pos = 0;
-				for_each(_Points, [&](const auto& _Point) {
-					_Px[_Pos] = _Point.x; _Py[_Pos++] = _Point.y;
-				});
+				_Impts[i] = _Points;
+
 				m_effindices.push_back(static_cast<size_t>(i));
+
 #ifdef MATRICE_DEBUG
 				std::cout << m_pattern.cols() << " x " << m_pattern.rows() << " = " << _Points.size() << " corners\n";
 #endif
 			}
 		}
+
+		m_imgpts.create(m_effindices.size() << 1, _N);
+		for (auto i = 0; i < m_effindices.size(); ++i) {
+			const auto _Points = _Impts[m_effindices[i]];
+			auto _Px = m_imgpts[i << 1], _Py = m_imgpts[i << 1 | 1];
+			size_t _Pos = 0;
+			for_each(_Points, [&](const auto& _Point) {
+				_Px[_Pos] = _Point.x; _Py[_Pos++] = _Point.y;
+				});
+		}
+
 		m_normal = { 1. / m_iw, 0., -0.5, 0., 1. / m_ih, -0.5, 0., 0., -1. };
 }
 }
@@ -201,7 +210,7 @@ mono_calibrator<T, _Patt, _Order>::_Analysis() {
 	_Retrieve_from_bg();
 
 	for (size_t i = 0; i < m_poses.rows(); ++i) {
-		matrix3x3 _H = _Find_homography(m_effindices[i]);
+		matrix3x3 _H = _Find_homography(i); /*m_effindices[i]*/
 
 		value_t h11 = _H[0][0], h12 = _H[1][0], h13 = _H[2][0];
 		value_t h21 = _H[0][1], h22 = _H[1][1], h23 = _H[2][1];
@@ -228,29 +237,29 @@ mono_calibrator<T, _Patt, _Order>::_Analysis() {
 	typename detail::Solver::Linear_<Op_t> solver(_V);
 	auto _Ret = solver.solve();
 	
-	value_t B11 = _Ret(0), B12 = _Ret(1), B13 = _Ret(3);
-	value_t B22 = _Ret(2), B23 = _Ret(4), B33 = _Ret(5);
-	value_t _Val1 = B12 * B13 - B11 * B23;
-	value_t _Val2 = B11 * B22 - B12 * B12;
+	const value_t B11 = _Ret(0), B12 = _Ret(1), B13 = _Ret(3);
+	const value_t B22 = _Ret(2), B23 = _Ret(4), B33 = _Ret(5);
+	const value_t _Val1 = B12 * B13 - B11 * B23;
+	const value_t _Val2 = B11 * B22 - B12 * B12;
 #ifdef MATRICE_DEBUG
 	DGELOM_CHECK(abs(_Val2) > matrix_t::eps && abs(B11) > matrix_t::eps,
 		"Unstable numeric computation.");
 #endif
 
-	value_t v0 = _Val1 / _Val2;                                  //cy
-	value_t lambda = B33 - (B13 * B13 + v0 * _Val1) / B11;
-	value_t alpha = sqrt(lambda / B11);                          //fx
-	value_t beta = sqrt(lambda * B11 / _Val2);                   //fy
-	value_t gamma = -B12 * beta / B11;                           //fs
-	value_t u0 = -(B12 * v0 + B13) / B11;                        //cx
+	const value_t v0 = _Val1 / _Val2;                              //cy
+	const value_t lambda = B33 - (B13 * B13 + v0 * _Val1) / B11;
+	const value_t alpha = sqrt(lambda / B11);                      //fx
+	const value_t beta = sqrt(lambda * B11 / _Val2);               //fy
+	const value_t gamma = -B12 * beta / B11;                       //fs
+	const value_t u0 = -(B12 * v0 + B13) / B11;                    //cx
 
 	matrix3x3 _Normal_inv{1/m_normal(0), 0., -m_normal(2)/ m_normal(0),
 		0., 1 / m_normal(4), -m_normal(5) / m_normal(4), 0.,0.,1.};
 	auto _Ex = _Normal_inv.mul(matrix3x3{alpha, gamma, u0, 0., beta, v0, 0., 0., 1.});
-	auto fx = m_params(0) = _Ex(0), fy = m_params(1) = _Ex(4);
-	auto cx = m_params(2) = _Ex(2), cy = m_params(3) = _Ex(5);
-	auto fs = m_params(6) = _Ex(1);
-	m_params(4) = m_params(5) = 0.1;
+	const auto fx = m_params(0) = _Ex(0), fy = m_params(1) = _Ex(4);
+	const auto cx = m_params(2) = _Ex(2), cy = m_params(3) = _Ex(5);
+	const auto fs = m_params(6) = 0./*_Ex(1)*/;
+	m_params(4) = m_params(5) = 0.001;
 
 	const auto rows = m_effindices.size()*m_pattern.count() << 1;
 	Matrix_<value_t, ::dynamic, 2> A(rows);
@@ -275,10 +284,9 @@ mono_calibrator<T, _Patt, _Order>::_Analysis() {
 		matrix3x3 _R{ _R1.x, _R2.x, _R3.x, _R1.y, _R2.y, _R3.y, _R1.z, _R2.z, _R3.z };
 		detail::LinearOp::Svd<decltype(_R)> _Op(_R);
 		decltype(_R) _R_opt = _R.mul(_Op.vt());
+		rodrigues(_R_opt, _Begin);
 
 		_Update_dist_eqs(i, A, b, _R_opt, _Begin);
-
-		rodrigues(_R_opt, _Begin);
 	}
 
 	auto AtAi = A.t().mul(A).eval().inv().eval();
