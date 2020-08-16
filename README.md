@@ -1,10 +1,10 @@
 <img src="../master/ivm.svg" width="800">
 
-# IVM(R) Monocamera_calibration
-A C++ library for mono-camera calibration.
+# VPM(R) Camera Calibration Library
+A C++ library for camera calibration.
 
 ## System Requirements
-Monocamera calibration supports Intel 64 architecture and compatible architectures.
+Camera calibration lib supports Intel 64 architecture and compatible architectures.
 The library is optimized for the systems based on
 * Intel(R) Core(TM) processor - 5th, 6th, 7th, and 8th generation
 * Intel(R) Xeon(R) processor E5 v3 family (formerly Haswell)
@@ -24,5 +24,5 @@ The software dependencies are:
   year = {2019},
   url = {https://github.com/ZL-Su/Monocamera_calibration},
   urldate = {April 09, 2019},
-  title = {Monocamera calibration Library}
+  title = {Camera Calibration Library}
 }
