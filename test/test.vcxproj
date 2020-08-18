@@ -39,8 +39,8 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="D:\opencv400\ocv_411_static_vc15x64d.props" />
     <Import Project="..\..\ceres-solver\optima_115_vc15x64d.props" />
+    <Import Project="D:\opencv340\ocv_340_vc14x64d.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -88,15 +88,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\..\..\..\Dgelo\Dropbox\Dgelom\Repos\Matrice\Matrice\Matrice.vcxproj">
       <Project>{e70fee41-532b-437b-8129-f7f4e9e88bdb}</Project>
     </ProjectReference>
     <ProjectReference Include="..\Monocamera_calibration\Monocamera_calibration.vcxproj">
-      <Project>{16c37071-c9a5-4a6b-b50b-95d97c6ced21}</Project>
+      <Project>{d768ab34-a25f-4f2d-a5a1-f37627981d65}</Project>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="calibration.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
