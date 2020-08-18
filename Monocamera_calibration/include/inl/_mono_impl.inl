@@ -68,7 +68,7 @@ INLINE void mono_calibrator<T, _Patt, _Order>::_Get_image_points() {
 			if (_Found) {
 				if constexpr (m_pattern.type == pattern_type::squared)
 					cornerSubPix(_Src, _Points, Size(11, 11), Size(-1, -1),
-					TermCriteria(criteria_t::COUNT + criteria_t::EPS, 30, 0.1));
+					TermCriteria(TermCriteria::COUNT + TermCriteria::EPS, 30, 0.1));
 				
 				_Impts[i] = _Points;
 
@@ -319,15 +319,15 @@ INLINE void mono_calibrator<T, _Patt, _Model>::_Update_dist_eqs(size_t i, Matrix
 
 		const auto j = i * m_imgpts.cols() + c;
 		if constexpr (Dmodel == distortion_model::D2U) {
-			const auto s = sq(x_d) + sq(y_d);
-			A[j << 1][0] = (u-cx)*s, A[j << 1][1] = (u - cx)*sq(s);
-			A[j << 1|1][0] = (v-cy)*s, A[j << 1|1][1] = (v-cy)*sq(s);
+			const auto s = sqr(x_d) + sqr(y_d);
+			A[j << 1][0] = (u-cx)*s, A[j << 1][1] = (u - cx)*sqr(s);
+			A[j << 1|1][0] = (v-cy)*s, A[j << 1|1][1] = (v-cy)*sqr(s);
 			b(j << 1) = u_i - u, b(j << 1 | 1) = v_i - v;
 		}
 		else {
-			const auto s = sq(x_i) + sq(y_i);
-			A[j<< 1][0] = (u_i - cx)*s, A[j << 1][1] = (u_i - cx)*sq(s);
-			A[j<<1|1][0] = (v_i - cy)*s, A[j<<1|1][1] = (v_i - cy)*sq(s);
+			const auto s = sqr(x_i) + sqr(y_i);
+			A[j<< 1][0] = (u_i - cx)*s, A[j << 1][1] = (u_i - cx)*sqr(s);
+			A[j<<1|1][0] = (v_i - cy)*s, A[j<<1|1][1] = (v_i - cy)*sqr(s);
 			b(j << 1) = u - u_i, b(j << 1 | 1) = v - v_i;
 		}
 	}
