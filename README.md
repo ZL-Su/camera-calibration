@@ -1,6 +1,6 @@
 <img src="../master/ivm.svg" width="800">
 
-# VPM(R) Camera Calibration Library
+# DGELOM(R) Camera Calibration Library
 A C++ library for camera calibration.
 
 ## System Requirements
